@@ -36,10 +36,10 @@
 <body>
 
 <h2>Strike Data Table</h2>
-<textarea id="jsonInput" rows="10" cols="80" placeholder="Paste JSON data here..."></textarea>
+<label for="jsonInput"></label><textarea id="jsonInput" rows="10" cols="80" placeholder="Paste JSON data here..."></textarea>
 <br>
 <label>Filter strikes ≥ </label>
-<input type="number" id="strikeFilter" value="0">
+<label for="strikeFilter"></label><input type="number" id="strikeFilter" value="0">
 <button onclick="displayTable()">Show Table</button>
 
 <div id="tableContainer"></div>
