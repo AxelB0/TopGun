@@ -40,44 +40,47 @@
 
 <script>
 
+    // persistent cumulative results and last year
     let cumulativeResults = [];
+    let persistentYear = ""; // <-- stores the last detected year across clicks
 
     function extractJSON() {
         const raw = document.getElementById('rawInput').value;
+        const lines = raw.split('\n');
 
-        let currentYear = "";
         const results = [];
 
-        // Detect full month with day and year, e.g., "January 15, 2027"
-        const yearRegex = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s(\d{4})$/gm;
-        let yearMatch;
-        while ((yearMatch = yearRegex.exec(raw)) !== null) {
-            currentYear = yearMatch[2]; // update currentYear whenever a new year line appears
-        }
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
 
-        // Match rows with 3-letter month abbreviations (column order)
-        const rowRegex = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s(\d{1,2})\s+([0-9.]+|--)\s+[^\s]+\s+([0-9.]+|--)\s+([0-9.]+|--)\s+[^\s]+\s+[^\s]+\s+([0-9.]+|--)/gm;
+            // Detect full month with day and year, e.g., "January 15, 2027"
+            const yearMatch = line.match(/^(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s(\d{4})$/);
+            if (yearMatch) {
+                persistentYear = yearMatch[2]; // update persistent year
+                continue;
+            }
 
-        let match;
-        while ((match = rowRegex.exec(raw)) !== null) {
-            const date = `${match[1]} ${match[2]} ${currentYear}`;
+            // Match rows starting with 3-letter month abbreviation
+            const rowMatch = line.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+([0-9.]+|--)\s+[^\s]+\s+([0-9.]+|--)\s+([0-9.]+|--)\s+[^\s]+\s+[^\s]+\s+([0-9.]+|--)/);
+            if (rowMatch) {
+                const date = `${rowMatch[1]} ${rowMatch[2]} ${persistentYear}`;
+                const last = rowMatch[3] === '--' ? 0 : parseFloat(rowMatch[3]);
+                const bid = rowMatch[4] === '--' ? 0 : parseFloat(rowMatch[4]);
+                const ask = rowMatch[5] === '--' ? 0 : parseFloat(rowMatch[5]);
+                const strike = rowMatch[6] === '--' ? 0 : parseFloat(rowMatch[6]);
 
-            let last = match[3] === '--' ? 0 : parseFloat(match[3]);
-            let bid = match[4] === '--' ? 0 : parseFloat(match[4]);
-            let ask = match[5] === '--' ? 0 : parseFloat(match[5]);
-            let strike = match[6] === '--' ? 0 : parseFloat(match[6]); // strike is column 8
-
-            results.push({
-                date: date,
-                last: last,
-                bid: bid,
-                ask: ask,
-                strike: strike
-            });
+                results.push({
+                    date,
+                    last,
+                    bid,
+                    ask,
+                    strike
+                });
+            }
         }
 
         cumulativeResults = cumulativeResults.concat(results);
-
         document.getElementById('output').textContent =
             JSON.stringify(cumulativeResults, null, 2);
     }
