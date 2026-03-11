@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <title> Stream Analyzer</title>
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+        }
+
+        #output {
+            white-space: pre;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            height: 300px;
+            overflow-y: scroll;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+<h2>Data Analyzer</h2>
+<label for="inputData"></label><textarea id="inputData" placeholder="Paste your raw data here"></textarea>
+<br>
+<button id="processBtn">Process Data</button>
+<div id="output"></div>
+
+<script>
+    const processBtn = document.getElementById('processBtn');
+    const outputDiv = document.getElementById('output');
+    const inputData = document.getElementById('inputData');
+
+    function printToOutput(value) {
+        outputDiv.textContent += value + '\n';
+    }
+
+    processBtn.addEventListener('click', () => {
+        const rawData = inputData.value;
+        outputDiv.textContent = ''; // clear previous output
+        const lines = rawData.split('\n');
+
+        let numberCounter = 0;
+        let skipNextNumber = false;
+
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) return;
+
+            if (skipNextNumber) {
+                skipNextNumber = false;
+                return; // skip this line entirely
+            }
+
+            // Skip the "Current price" line itself
+            if (line.toLowerCase().startsWith("current price")) {
+                skipNextNumber = true; // mark to skip the next number line
+                return;
+            }
+
+            if (line.toLowerCase().startsWith('expires')) {
+                printToOutput(line); // Print expiration date
+                numberCounter = 0;   // reset number counter for new block
+                return;
+            }
+
+            const num = parseFloat(line);
+            if (!isNaN(num)) {
+                numberCounter++;
+
+                switch (numberCounter) {
+                    case 1: // Call last price
+                        printToOutput(`Call Last Price: ${num}`);
+                        break;
+                    case 6: //might be Strike
+                        if (line.includes(".")) {
+                            printToOutput(`Strike: ${num}`);
+                            numberCounter++;
+                            break;
+                        } else {
+                            break;
+                        }
+                    case 7: // Strike
+                        printToOutput(`Strike: ${num}`);
+                        break;
+                    case 8: // Put last price
+                        printToOutput(`Put Last Price: ${num}`);
+                        break;
+                    case 12:
+                        if (line.includes(".")) {
+                            printToOutput(`Call Last Price: ${num}`);
+                            numberCounter = 1;
+                            break;
+                        } else {
+                            break;
+                        }
+                    case 13:
+                        if (line.includes(".")) {
+                            printToOutput(`Call Last Price: ${num}`);
+                            numberCounter = 1;
+                            break;
+                        } else {
+                            numberCounter = 0;
+                        }
+                    default:
+                        // ignore all other numbers
+                        break;
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>

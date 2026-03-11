@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Index 2 - Strike Data Table</title>
+    <style>
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 10px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #e1f5fe;
+        }
+
+        #tableContainer {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Strike Data Table</h2>
+<label for="jsonInput"></label><textarea id="jsonInput" rows="10" cols="80" placeholder="Paste JSON data here..."></textarea>
+<br>
+<label>Filter strikes ≥ </label>
+<label for="strikeFilter"></label><input type="number" id="strikeFilter" value="0">
+<button onclick="displayTable()">Show Table</button>
+
+<div id="tableContainer"></div>
+
+<script>
+    let parsedData = [];
+    let sortOrder = {};
+
+    function displayTable() {
+        const raw = document.getElementById("jsonInput").value;
+        const strikeMin = parseFloat(document.getElementById("strikeFilter").value) || 0;
+
+        try {
+            parsedData = JSON.parse(raw);
+
+            const filteredData = parsedData.filter(item => item.strike >= strikeMin);
+
+            const container = document.getElementById("tableContainer");
+            container.innerHTML = "";
+
+            const table = document.createElement("table");
+            const header = table.insertRow();
+            const columns = ["date", "last", "bid", "ask", "strike", "weeks", "value/week"];
+            columns.forEach(col => {
+                const th = document.createElement("th");
+                th.textContent = col;
+                th.onclick = () => sortTable(col, filteredData);
+                header.appendChild(th);
+            });
+
+            filteredData.forEach(item => {
+                const row = table.insertRow();
+                const valuePerWeek = item.weeks > 0 ? +(item.last / item.weeks).toFixed(2) : 0;
+                row.insertCell().textContent = item.date;
+                row.insertCell().textContent = item.last;
+                row.insertCell().textContent = item.bid;
+                row.insertCell().textContent = item.ask;
+                row.insertCell().textContent = item.strike;
+                row.insertCell().textContent = item.weeks;
+                row.insertCell().textContent = valuePerWeek;
+            });
+
+            container.appendChild(table);
+        } catch (e) {
+            alert("Invalid JSON. Check your data.");
+        }
+    }
+
+    function sortTable(column, dataArray) {
+        const numericCols = ["last", "bid", "ask", "strike", "weeks", "value/week"];
+        sortOrder[column] = !sortOrder[column];
+
+        const sortedData = [...dataArray].sort((a, b) => {
+            let aVal = column === "value/week" ? (a.weeks > 0 ? a.last / a.weeks : 0) : a[column];
+            let bVal = column === "value/week" ? (b.weeks > 0 ? b.last / b.weeks : 0) : b[column];
+
+            if (numericCols.includes(column)) {
+                return sortOrder[column] ? aVal - bVal : bVal - aVal;
+            } else {
+                return sortOrder[column] ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            }
+        });
+
+        const table = document.querySelector("#tableContainer table");
+        for (let i = table.rows.length - 1; i > 0; i--) {
+            table.deleteRow(i);
+        }
+
+        sortedData.forEach(item => {
+            const row = table.insertRow();
+            const valuePerWeek = item.weeks > 0 ? +(item.last / item.weeks).toFixed(2) : 0;
+            row.insertCell().textContent = item.date;
+            row.insertCell().textContent = item.last;
+            row.insertCell().textContent = item.bid;
+            row.insertCell().textContent = item.ask;
+            row.insertCell().textContent = item.strike;
+            row.insertCell().textContent = item.weeks;
+            row.insertCell().textContent = valuePerWeek;
+        });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Extract Options Data</title>
+</head>
+<body>
+
+<h2>Paste Raw Data</h2>
+<label for="rawInput"></label><textarea id="rawInput" style="width:100%;height:300px;"></textarea>
+<br><br>
+<button onclick="extractJSON()">Add to JSON</button>
+<button onclick="addWeeksToData()">Calculate Weeks</button>
+<button onclick="copyJSON()">Copy JSON</button>
+<a href="index2.html">
+    <button type="button">Next page</button>
+</a>
+<div id="copyNotice">Copied to clipboard</div>
+
+<h2>Output JSON:</h2>
+<pre id="output">[]</pre>
+<style>
+    #copyNotice {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #333;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        opacity: 0;
+        transition: opacity 0.4s;
+        font-family: sans-serif;
+    }
+
+    #copyNotice.show {
+        opacity: 1;
+    }
+</style>
+
+<script>
+    let cumulativeResults = [];
+
+    function extractJSON() {
+        const raw = document.getElementById('rawInput').value;
+
+        let currentYear = "";
+        const results = [];
+
+        // detect year like "April 10, 2026"
+        const yearRegex = /[A-Za-z]+\s\d{1,2},\s(\d{4})/g;
+        let yearMatch = yearRegex.exec(raw);
+        if (yearMatch) currentYear = yearMatch[1];
+
+        // match each row
+        const rowRegex = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s(\d{1,2})\s+([0-9.]+|--)\s+[^\s]+\s+([0-9.]+|--)\s+([0-9.]+|--)\s+[^\s]+\s+[^\s]+\s+([0-9.]+|--)/g;
+
+        let match;
+        while ((match = rowRegex.exec(raw)) !== null) {
+
+            const date = `${match[1]} ${match[2]} ${currentYear}`;
+
+            let last = match[3] === '--' ? 0 : parseFloat(match[3]);
+            let bid = match[4] === '--' ? 0 : parseFloat(match[4]);
+            let ask = match[5] === '--' ? 0 : parseFloat(match[5]);
+            let strike = match[6] === '--' ? 0 : parseFloat(match[6]);
+
+            results.push({
+                date: date,
+                last: last,
+                bid: bid,
+                ask: ask,
+                strike: strike
+            });
+        }
+
+        cumulativeResults = cumulativeResults.concat(results);
+
+        document.getElementById('output').textContent =
+            JSON.stringify(cumulativeResults, null, 2);
+    }
+
+    function addWeeksToData() {
+
+        const now = new Date();
+
+        cumulativeResults = cumulativeResults.map(row => {
+
+            const expiration = new Date(row.date);
+
+            const diffMs = expiration - now;
+            const weeks = diffMs / (1000 * 60 * 60 * 24 * 7);
+
+            return {
+                ...row,
+                weeks: Math.floor(weeks)
+            };
+
+        });
+
+        document.getElementById("output").textContent =
+            JSON.stringify(cumulativeResults, null, 2);
+    }
+
+    function copyJSON() {
+
+        const text = document.getElementById("output").textContent;
+
+        navigator.clipboard.writeText(text);
+
+        const notice = document.getElementById("copyNotice");
+        notice.classList.add("show");
+
+        setTimeout(() => {
+            notice.classList.remove("show");
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>
