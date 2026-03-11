@@ -39,40 +39,47 @@
 </style>
 
 <script>
+
     let cumulativeResults = [];
 
     function extractJSON() {
         const raw = document.getElementById('rawInput').value;
-        const lines = raw.split('\n'); // split text into lines
+
         let currentYear = "";
         const results = [];
 
-        for (let line of lines) {
-            line = line.trim();
-            if (!line) continue;
+        // Detect full month with day and year, e.g., "January 15, 2027"
+        const yearRegex = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s(\d{4})$/gm;
+        let yearMatch;
+        while ((yearMatch = yearRegex.exec(raw)) !== null) {
+            currentYear = yearMatch[2]; // update currentYear whenever a new year line appears
+        }
 
-            // Check if this line is a year line like "January 15, 2027"
-            const yearMatch = line.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s(\d{4})/);
-            if (yearMatch) {
-                currentYear = yearMatch[2];
-                continue; // skip this line
-            }
+        // Match rows with 3-letter month abbreviations (column order)
+        const rowRegex = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s(\d{1,2})\s+([0-9.]+|--)\s+[^\s]+\s+([0-9.]+|--)\s+([0-9.]+|--)\s+[^\s]+\s+[^\s]+\s+([0-9.]+|--)/gm;
 
-            // Match a data row: Month Day Last Change Bid Ask ... Strike
-            const rowMatch = line.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+([0-9.]+|--)\s+\S+\s+([0-9.]+|--)\s+([0-9.]+|--).*?([0-9.]+|--)/);
-            if (rowMatch && currentYear) {
-                const date = `${rowMatch[1]} ${rowMatch[2]} ${currentYear}`;
-                const last = rowMatch[3] === '--' ? 0 : parseFloat(rowMatch[3]);
-                const bid = rowMatch[4] === '--' ? 0 : parseFloat(rowMatch[4]);
-                const ask = rowMatch[5] === '--' ? 0 : parseFloat(rowMatch[5]);
-                const strike = rowMatch[6] === '--' ? 0 : parseFloat(rowMatch[6]);
+        let match;
+        while ((match = rowRegex.exec(raw)) !== null) {
+            const date = `${match[1]} ${match[2]} ${currentYear}`;
 
-                results.push({date, last, bid, ask, strike});
-            }
+            let last = match[3] === '--' ? 0 : parseFloat(match[3]);
+            let bid = match[4] === '--' ? 0 : parseFloat(match[4]);
+            let ask = match[5] === '--' ? 0 : parseFloat(match[5]);
+            let strike = match[6] === '--' ? 0 : parseFloat(match[6]); // strike is column 8
+
+            results.push({
+                date: date,
+                last: last,
+                bid: bid,
+                ask: ask,
+                strike: strike
+            });
         }
 
         cumulativeResults = cumulativeResults.concat(results);
-        document.getElementById('output').textContent = JSON.stringify(cumulativeResults, null, 2);
+
+        document.getElementById('output').textContent =
+            JSON.stringify(cumulativeResults, null, 2);
     }
 
     function addWeeksToData() {
