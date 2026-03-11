@@ -69,12 +69,14 @@
                 const bid = rowMatch[4] === '--' ? 0 : parseFloat(rowMatch[4]);
                 const ask = rowMatch[5] === '--' ? 0 : parseFloat(rowMatch[5]);
                 const strike = rowMatch[6] === '--' ? 0 : parseFloat(rowMatch[6]);
+                const avg = +( (bid + ask) / 2 ).toFixed(2);
 
                 results.push({
                     date,
                     last,
                     bid,
                     ask,
+                    avg,
                     strike
                 });
             }
