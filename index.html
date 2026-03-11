@@ -33,7 +33,7 @@
         font-family: sans-serif;
     }
 
-    #copyNotice.show {
+    #copyNotice {
         opacity: 1;
     }
 </style>
@@ -43,41 +43,36 @@
 
     function extractJSON() {
         const raw = document.getElementById('rawInput').value;
-
+        const lines = raw.split('\n'); // split text into lines
         let currentYear = "";
         const results = [];
 
-        // detect year like "April 10, 2026"
-        const yearRegex = /[A-Za-z]+\s\d{1,2},\s(\d{4})/g;
-        let yearMatch = yearRegex.exec(raw);
-        if (yearMatch) currentYear = yearMatch[1];
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
 
-        // match each row
-        const rowRegex = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s(\d{1,2})\s+([0-9.]+|--)\s+[^\s]+\s+([0-9.]+|--)\s+([0-9.]+|--)\s+[^\s]+\s+[^\s]+\s+([0-9.]+|--)/g;
+            // Check if this line is a year line like "January 15, 2027"
+            const yearMatch = line.match(/(January|February|March|April|May|June|July|August|September|October|November|December)\s\d{1,2},\s(\d{4})/);
+            if (yearMatch) {
+                currentYear = yearMatch[2];
+                continue; // skip this line
+            }
 
-        let match;
-        while ((match = rowRegex.exec(raw)) !== null) {
+            // Match a data row: Month Day Last Change Bid Ask ... Strike
+            const rowMatch = line.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+([0-9.]+|--)\s+\S+\s+([0-9.]+|--)\s+([0-9.]+|--).*?([0-9.]+|--)/);
+            if (rowMatch && currentYear) {
+                const date = `${rowMatch[1]} ${rowMatch[2]} ${currentYear}`;
+                const last = rowMatch[3] === '--' ? 0 : parseFloat(rowMatch[3]);
+                const bid = rowMatch[4] === '--' ? 0 : parseFloat(rowMatch[4]);
+                const ask = rowMatch[5] === '--' ? 0 : parseFloat(rowMatch[5]);
+                const strike = rowMatch[6] === '--' ? 0 : parseFloat(rowMatch[6]);
 
-            const date = `${match[1]} ${match[2]} ${currentYear}`;
-
-            let last = match[3] === '--' ? 0 : parseFloat(match[3]);
-            let bid = match[4] === '--' ? 0 : parseFloat(match[4]);
-            let ask = match[5] === '--' ? 0 : parseFloat(match[5]);
-            let strike = match[6] === '--' ? 0 : parseFloat(match[6]);
-
-            results.push({
-                date: date,
-                last: last,
-                bid: bid,
-                ask: ask,
-                strike: strike
-            });
+                results.push({date, last, bid, ask, strike});
+            }
         }
 
         cumulativeResults = cumulativeResults.concat(results);
-
-        document.getElementById('output').textContent =
-            JSON.stringify(cumulativeResults, null, 2);
+        document.getElementById('output').textContent = JSON.stringify(cumulativeResults, null, 2);
     }
 
     function addWeeksToData() {
